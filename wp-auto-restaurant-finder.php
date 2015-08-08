@@ -15,8 +15,58 @@ Author URI: http://www.luciaintelisano.it
 	wparf_init();
 	
 	
-	
-	 
+		function wparf_is_shortcode($incat=0) {
+ 
+		global $post;
+ 
+		if ($incat==0 && strstr( $post->post_content, '[wparf ' ) ) {
+			 return true;
+		} else {
+			$cats = strtolower(get_option('wparf_view_on_tag'));
+		 
+			$attachok=0;
+			if  ($cats!="") {
+				 $arrCat = split(",",$cats);
+				 $categories = get_the_category();
+				 
+				 if($categories){
+					foreach($categories as $category) {
+						 
+							foreach($arrCat as $cat) {
+								
+								if (strtolower($category->name)==$cat) {
+								
+									$attachok=1;
+								}
+							}
+					}
+				}	
+			}
+			$tagnames = trim(strtolower(get_option('wparf_view_on_tag')));	 
+			 
+			if ($tagnames!="") {
+		 		echo $tagnames;
+				$posttags = get_the_tags();
+				if ($posttags!="") {
+						 
+					 	$arrTags = split(",",$tagnames);
+				  		foreach($posttags as $tagpost) {
+							foreach($arrTags as $tagname) {							 
+								if (trim(strtolower($tagpost->name))==$tagname) {
+										$attachok=1;
+								}	 
+							}
+				  		}
+				}
+			}	
+			 
+			if ($attachok==1) {
+				return true;
+			}
+		
+		}
+		return false;
+	}	
  	 
 	/* Extract text inside two tags */
 	function getRow1234($cnt, $tagStart, $tagEnd) {
@@ -36,9 +86,11 @@ Author URI: http://www.luciaintelisano.it
  		* Function for adding header style sheets and js
  	*/
 	function wparf_theme_name_scripts() {	 
-		wp_enqueue_style('default_style_wparf_1', plugins_url('css/stylemap.css', __FILE__), false, time());
-		wp_enqueue_script( 'default_scripts_wparf_1', "https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true&libraries=places,geometry", array(), '', false );
-		wp_enqueue_script( 'default_scripts_wparf_2', plugins_url('js/scriptmap.js', __FILE__), array(), time(), true );
+		if (wparf_is_shortcode())  {
+			wp_enqueue_style('default_style_wparf_1', plugins_url('css/stylemap.css', __FILE__), false, time());
+			wp_enqueue_script( 'default_scripts_wparf_1', "https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true&libraries=places,geometry", array(), '', false );
+			wp_enqueue_script( 'default_scripts_wparf_2', plugins_url('js/scriptmap.js', __FILE__), array(), time(), true );
+		}
 	} 
 		
 		
@@ -59,7 +111,7 @@ Author URI: http://www.luciaintelisano.it
 	 	add_action( 'admin_init', 'wparf_register_mysettings' );   
 	 	add_filter( 'the_content', 'wparf_my_the_post_action' );
 		add_shortcode('wparf', 'wparf_createMap');
-		add_action('media_buttons', 'add_my_media_button');
+		add_action('media_buttons', 'wparf_add_my_media_button');
 	}	
 		
 		
@@ -183,38 +235,8 @@ function wparf_settings_page() {
  * Function for add map on post 
  */
 function wparf_my_the_post_action( $content ) {
- if ( is_single() ) {
-	$cats = strtolower(get_option('wparf_view_on_cat'));
-	$attachok=0;
-	if  ($cats!="") {
-		 $arrCat = split(",",$cats);
-		 $categories = get_the_category();
-		 if($categories){
-			foreach($categories as $category) {
-					foreach($arrCat as $cat) {
-						if (strtolower($category->name)==$cat) {
-							$attachok=1;
-					 	}
-					}
-			}
-		}	
-	}
-	$tagnames = trim(strtolower(get_option('wparf_view_on_tag')));	 
-	if ($tagnames!="") {
-		 
-		$posttags = get_the_tags();
-		if ($posttags!="") {
- 			 $arrTags = split(",",$tagnames);
-		  foreach($posttags as $tagpost) {
-	 			foreach($arrTags as $tagname) {
-					if (trim(strtolower($tagpost->name))==$tagname) {
-							$attachok=1;
-					}	 
-				}
-		  }
-		}
-	}	
-	if ($attachok==1) {
+ 
+	if (wparf_is_shortcode(1))  {
 			global $post, $wp_query;
     		$post_id = $post->ID;
     		$atts = array();
@@ -253,15 +275,15 @@ function wparf_my_the_post_action( $content ) {
 			$cnt = wparf_createMap($atts);
 			$content.=$cnt;
 	}
-}	
+ 	
 	return $content;
  
 
 	 
     
 }
- function add_my_media_button() {
-    echo '<a href="javascript:wp.media.editor.insert(\'[wparf location= lat= lng=]\');" id="insert-my-media" class="button">Add restaurant map</a>';
+ function wparf_add_my_media_button() {
+   echo '<a href="javascript:wp.media.editor.insert(\'[wparf location=&quot;&quot; lat=&quot;&quot; lng=&quot;&quot; title=&quot;&quot;]\');" id="insert-my-media" class="button">Add restaurant map</a>';
 }
  
  
